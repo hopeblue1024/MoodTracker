@@ -39,9 +39,11 @@ jobs:
       contents: write  # 创建 Release 需要写权限
 
     steps:
-      # ── 1. 检出代码 ──
+      # ── 1. 检出代码（获取完整历史，用于生成变更日志） ──
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整 git 历史
 
       # ── 2. 配置 JDK 17 (Android 编译要求) ──
       - name: Set up JDK 17
@@ -97,26 +99,65 @@ jobs:
           echo "apk_path=MoodTracker-${TAG}.apk" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-      # ── 7. 创建 GitHub Release 并上传 APK ──
+      # ── 7. 生成 Release 简介（功能介绍 + 本次更新内容） ──
+      - name: Generate release notes
+        id: notes
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+
+          # 找到上一个版本标签（按版本号排序）
+          PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -A1 "^$TAG$" | tail -1)
+
+          # 如果有上一个标签，生成两个版本之间的变更日志
+          if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$TAG" ]; then
+            echo "上一个版本: $PREV_TAG"
+            # 提取 commit 信息，过滤掉 Merge commit，每行前加 📝
+            CHANGES=$(git log --pretty=format:"- %s" ${PREV_TAG}..${TAG} --no-merges)
+          else
+            echo "首个版本，无前置标签"
+            CHANGES=$(git log --pretty=format:"- %s" -10 --no-merges)
+          fi
+
+          # 写入 release body 文件
+          cat > release_body.md << 'HEADER'
+          极简心情&精神状态记录App
+          一款本地优先的身心状态追踪工具，无需账号，所有记录保存在本机。
+
+          ## 📱 核心功能
+          - 5种情绪 + 5种精神状态，emoji 网格点击即记录，带弹跳动画反馈
+          - 历史记录列表，支持全部/仅情绪/仅状态筛选，单条删除与清空
+          - 统计仪表盘：高频项摘要卡 + 分布占比条形图 + 近7日记录走势柱状图
+          - App 指纹/数字密码锁，保护隐私
+          - 记录导出 CSV 备份
+          - 自定义本地打卡提醒（支持开关与自定义时间）
+
+          无广告、无网络上传、无 AI 心理分析，仅用于个人状态记录。
+          适配 Android 10 及以上，Kotlin + Jetpack Compose 开发。
+
+          ## 🔄 本次更新
+          HEADER
+
+          # 追加变更内容
+          if [ -n "$CHANGES" ]; then
+            echo "$CHANGES" >> release_body.md
+          else
+            echo "- 版本更新" >> release_body.md
+          fi
+
+          echo "" >> release_body.md
+          echo "---" >> release_body.md
+          echo "版本号: $TAG" >> release_body.md
+
+          echo "release_body_file=release_body.md" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      # ── 8. 创建 GitHub Release 并上传 APK ──
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.apk.outputs.tag }}
-          name: ${{ steps.apk.outputs.tag }}
+          tag_name: ${{ steps.notes.outputs.tag }}
+          name: ${{ steps.notes.outputs.tag }}
           files: ${{ steps.apk.outputs.apk_path }}
-          body: |
-            极简心情&精神状态记录App
-            一款本地优先的身心状态追踪工具，无需账号，所有记录保存在本机。
-
-            📱 3Tab极简界面（记录 / 历史 / 统计）
-            ✅ 9种情绪+8种身体精神状态，emoji网格点击即记录，带弹跳动画反馈
-            ✅ 历史记录列表，支持全部/仅情绪/仅状态筛选，单条删除与清空
-            ✅ 统计仪表盘：高频项摘要卡 + 分布占比条形图 + 近7日记录走势柱状图
-            ✅ App指纹/数字密码锁，保护隐私
-            ✅ 记录导出CSV备份
-            ✅ 自定义本地打卡提醒（支持开关与自定义时间）
-
-            无广告、无网络上传、无AI心理分析，仅用于个人状态记录。
-            适配 Android 10 及以上，Kotlin + Jetpack Compose 开发。
+          body_path: ${{ steps.notes.outputs.release_body_file }}
           draft: false
           prerelease: false
