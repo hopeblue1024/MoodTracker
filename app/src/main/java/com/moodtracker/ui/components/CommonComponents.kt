@@ -92,6 +92,7 @@ fun GridItemCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .height(90.dp)
             .scale(finalScale)
             .clickable(
                 interactionSource = interactionSource,

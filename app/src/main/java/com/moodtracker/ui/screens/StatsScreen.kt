@@ -100,9 +100,9 @@ fun StatsScreen(viewModel: MoodViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("心情记录", color = Color.White) },
+                title = { Text("心情记录", color = Color(0xFF1A1A1A)) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1A1A1A)
+                    containerColor = Color(0xFFF5F5F0)
                 )
             )
         }
