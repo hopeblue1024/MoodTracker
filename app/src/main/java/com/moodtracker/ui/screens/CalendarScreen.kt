@@ -70,7 +70,7 @@ fun CalendarScreen(
 
     // 监听当月记录变化
     val monthRecords by remember(currentMonth) {
-        viewModel.getRecordsForMonth(currentMonth.year, currentMonth.value)
+        viewModel.getRecordsForMonth(currentMonth.year, currentMonth.monthValue)
     }.collectAsStateWithLifecycle(emptyList())
 
     val zoneId = ZoneId.systemDefault()

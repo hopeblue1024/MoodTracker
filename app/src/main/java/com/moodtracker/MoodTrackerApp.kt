@@ -1,7 +1,8 @@
 package com.moodtracker
 
 import android.app.Application
-import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.moodtracker.data.MoodDatabase
 import com.moodtracker.utils.NotificationHelper
@@ -40,11 +41,9 @@ class MoodTrackerApp : Application() {
         }
 
         // 应用回到前台时，若锁屏已开启则显示锁屏
-        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
-            override fun onStart() {
-                if (preferences.isLockEnabled) {
-                    _lockState.value = true
-                }
+        ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START && preferences.isLockEnabled) {
+                _lockState.value = true
             }
         })
     }
