@@ -73,7 +73,7 @@ class MoodViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { onResult(dao.getRecordById(id)) }
     }
 
-    fun exportToCsv(): String {
+    suspend fun exportToCsv(): String {
         val records = dao.getAllRecordsList()
         val sb = StringBuilder()
         sb.append("ID,类型,标签,描述,备注,时间\n")
@@ -84,11 +84,15 @@ class MoodViewModel(application: Application) : AndroidViewModel(application) {
         return sb.toString()
     }
 
-    fun setLockEnabled(enabled: Boolean) = preferences.setLockEnabled(enabled)
-    fun setLockPassword(password: String) = preferences.setLockPassword(password)
-    fun setBiometricEnabled(enabled: Boolean) = preferences.setBiometricEnabled(enabled)
-    fun setReminderEnabled(enabled: Boolean) = preferences.setReminderEnabled(enabled)
-    fun setReminderTime(time: String) = preferences.setReminderTime(time)
+    fun setLockEnabled(enabled: Boolean) { preferences.isLockEnabled = enabled }
+    fun setLockPassword(password: String) {
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        val bytes = md.digest(password.toByteArray(Charsets.UTF_8))
+        preferences.lockPassword = bytes.joinToString("") { "%02x".format(it) }
+    }
+    fun setBiometricEnabled(enabled: Boolean) { preferences.useBiometric = enabled }
+    fun setReminderEnabled(enabled: Boolean) { preferences.isReminderEnabled = enabled }
+    fun setReminderTime(time: String) { preferences.reminderTime = time }
 
     companion object {
         fun factory(app: Application): ViewModelProvider.Factory {

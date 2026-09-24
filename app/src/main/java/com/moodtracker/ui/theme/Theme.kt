@@ -47,7 +47,7 @@ fun MoodTrackerTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = MoodTypography,
         content = content
     )
 }
