@@ -67,7 +67,6 @@ import java.util.Locale
 fun GridItemCard(
     emoji: String,
     label: String,
-    description: String,
     accentColor: Color,
     onClick: () -> Unit
 ) {

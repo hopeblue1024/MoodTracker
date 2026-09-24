@@ -39,7 +39,7 @@ class MoodViewModel(application: Application) : AndroidViewModel(application) {
                 MoodRecord(
                     type = RecordType.EMOTION.name,
                     label = emotion.label,
-                    description = emotion.description,
+                    description = emotion.label,
                     note = note,
                     timestamp = System.currentTimeMillis()
                 )
@@ -53,7 +53,7 @@ class MoodViewModel(application: Application) : AndroidViewModel(application) {
                 MoodRecord(
                     type = RecordType.STATE.name,
                     label = state.label,
-                    description = state.description,
+                    description = state.label,
                     note = note,
                     timestamp = System.currentTimeMillis()
                 )

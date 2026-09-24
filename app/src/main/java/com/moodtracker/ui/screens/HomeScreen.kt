@@ -163,7 +163,6 @@ fun HomeScreen(
                                 GridItemCard(
                                     emoji = emotion.emoji,
                                     label = emotion.label,
-                                    description = emotion.description,
                                     accentColor = emotion.toColor(),
                                     onClick = { viewModel.insertEmotion(emotion) }
                                 )
@@ -196,7 +195,6 @@ fun HomeScreen(
                                 GridItemCard(
                                     emoji = state.emoji,
                                     label = state.label,
-                                    description = state.description,
                                     accentColor = state.toColor(),
                                     onClick = { viewModel.insertState(state) }
                                 )
