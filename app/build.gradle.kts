@@ -9,12 +9,16 @@ android {
     namespace = "com.moodtracker"
     compileSdk = 35
 
+    // 从 Gradle 属性读取版本号（CI 传入），默认回退到 0.1.0
+    val appVersionName: String = (project.findProperty("appVersionName") as? String) ?: "0.1.0"
+    val appVersionCode: Int = (project.findProperty("appVersionCode") as? String)?.toIntOrNull() ?: 1
+
     defaultConfig {
         applicationId = "com.moodtracker"
         minSdk = 29       // Android 10 及以上
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true

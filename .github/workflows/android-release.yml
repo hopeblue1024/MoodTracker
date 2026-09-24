@@ -68,9 +68,24 @@ jobs:
       #     echo "$SIGNING_KEYSTORE" | base64 -d > app/release.keystore
       #     # 在 app/build.gradle.kts 中添加 signingConfigs.release 引用此文件
 
-      # ── 5. 编译 Release APK ──
+      # ── 5. 从 git tag 提取版本号 ──
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}     # v0.3.1
+          VERSION=${TAG#v}                 # 0.3.1
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+          echo "version_name=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "Tag: $TAG → versionName=$VERSION, versionCode=$VERSION_CODE"
+
+      # ── 6. 编译 Release APK (注入版本号) ──
       - name: Build Release APK
-        run: gradle assembleRelease --no-daemon --stacktrace
+        run: |
+          gradle assembleRelease --no-daemon --stacktrace \
+            -PappVersionName=${{ steps.version.outputs.version_name }} \
+            -PappVersionCode=${{ steps.version.outputs.version_code }}
 
       # ── 6. 重命名 APK (带版本号) ──
       - name: Rename APK
