@@ -99,8 +99,7 @@ fun HomeScreen(
             // ── 摘要卡 ──
             Card(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -208,23 +207,6 @@ fun HomeScreen(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // ── 信息条 ──
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
-                    .padding(12.dp)
-            ) {
-                Text(
-                    "轻触印章即存入手机本地 SQLite 数据库，无网络亦可流畅记录，数据安全不外泄。",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
             }
 
             Spacer(Modifier.height(16.dp))

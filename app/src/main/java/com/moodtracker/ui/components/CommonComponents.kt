@@ -149,13 +149,6 @@ fun GridItemCard(
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
-                Text(
-                    description,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
 
             // "✓ 已记录" 确认层 — 用 alpha 动画替代 AnimatedVisibility
