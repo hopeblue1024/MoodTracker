@@ -1,13 +1,10 @@
 package com.moodtracker.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -161,15 +158,11 @@ fun GridItemCard(
                 )
             }
 
-            // "✓ 已记录" 确认层
-            AnimatedVisibility(
-                visible = showConfirmed,
-                modifier = Modifier.align(Alignment.Center),
-                enter = fadeIn(tween(200)),
-                exit = fadeOut(tween(400))
-            ) {
+            // "✓ 已记录" 确认层 — 用 alpha 动画替代 AnimatedVisibility
+            if (showConfirmed) {
                 Box(
                     modifier = Modifier
+                        .align(Alignment.Center)
                         .clip(RoundedCornerShape(8.dp))
                         .background(accentColor)
                         .padding(horizontal = 10.dp, vertical = 4.dp)
