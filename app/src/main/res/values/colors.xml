@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 应用背景色 (柔和奶白) -->
+    <color name="cream_background">#FAFAF5</color>
+    <!-- 启动器图标背景色 -->
+    <color name="ic_launcher_background">#E8F5E9</color>
+</resources>

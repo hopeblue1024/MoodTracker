@@ -1,0 +1,104 @@
+# ═══════════════════════════════════════════════════════════════════
+# Android Release CI/CD — 极简心情记录 App
+# ═══════════════════════════════════════════════════════════════════
+#
+# 使用方式:
+#   1. 打 git 标签: git tag v0.1.0
+#   2. 推送标签:   git push origin v0.1.0
+#   3. 工作流自动触发: 编译 Release APK → 创建 GitHub Release → 上传 APK
+#
+# 签名说明:
+#   默认使用 debug 签名，产出可安装的测试 APK，直接用于 Release 下载安装。
+#   如需正式签名，在 GitHub 仓库 Settings → Secrets and variables → Actions 中配置:
+#     SIGNING_KEYSTORE       — base64 编码的 .keystore/.jks 文件内容
+#     SIGNING_KEY_ALIAS      — 密钥别名
+#     SIGNING_KEY_PASSWORD   — 密钥密码
+#     SIGNING_STORE_PASSWORD — keystore 密码
+#   配置后取消下方 "正式签名配置" 部分的注释即可启用。
+# ═══════════════════════════════════════════════════════════════════
+
+name: Android Release
+
+on:
+  push:
+    tags:
+      # 匹配 v*.*.* 格式的标签，例如 v0.1.0、v1.2.3
+      - 'v*.*.*'
+
+# 同一时间同一标签只允许运行一个
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    name: Build APK & Create Release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # 创建 Release 需要写权限
+
+    steps:
+      # ── 1. 检出代码 ──
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. 配置 JDK 17 (Android 编译要求) ──
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # ── 3. 配置 Gradle ──
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      # ── 4. (可选) 正式签名配置 ──
+      # 取消注释并在 GitHub Secrets 中配置签名密钥后启用
+      # - name: Decode signing keystore
+      #   env:
+      #     SIGNING_KEYSTORE: ${{ secrets.SIGNING_KEYSTORE }}
+      #     SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+      #     SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+      #     SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+      #   run: |
+      #     echo "$SIGNING_KEYSTORE" | base64 -d > app/release.keystore
+      #     # 在 app/build.gradle.kts 中添加 signingConfigs.release 引用此文件
+
+      # ── 5. 编译 Release APK ──
+      - name: Build Release APK
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      # ── 6. 重命名 APK (带版本号) ──
+      - name: Rename APK
+        id: apk
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          cp "$APK_PATH" "MoodTracker-${TAG}.apk"
+          echo "apk_path=MoodTracker-${TAG}.apk" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      # ── 7. 创建 GitHub Release 并上传 APK ──
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.apk.outputs.tag }}
+          name: ${{ steps.apk.outputs.tag }}
+          files: ${{ steps.apk.outputs.apk_path }}
+          body: |
+            极简心情&精神状态记录App
+            一款本地优先的情绪追踪工具，无需账号，所有记录保存在本机。
+            功能：
+            ✅ 5档心情+emoji快速记录，支持多选精神状态标签，可写备注，一天多条记录
+            ✅ 月历色块视图，点击日期查看当日全部记录
+            ✅ 周/月情绪折线图、心情占比饼图统计
+            ✅ App指纹/数字密码锁，保护隐私
+            ✅ 记录导出CSV备份
+            ✅ 自定义本地打卡提醒
+            无广告、无网络上传、无AI心理分析，仅用于个人状态记录。
+          draft: false
+          prerelease: false
