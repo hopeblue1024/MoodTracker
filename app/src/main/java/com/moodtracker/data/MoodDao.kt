@@ -10,8 +10,6 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface MoodDao {
 
-    // ════════ 心情记录 ════════
-
     @Insert
     suspend fun insertRecord(record: MoodRecord): Long
 
@@ -21,8 +19,14 @@ interface MoodDao {
     @Delete
     suspend fun deleteRecord(record: MoodRecord)
 
+    @Query("DELETE FROM mood_records")
+    suspend fun deleteAllRecords()
+
     @Query("SELECT * FROM mood_records ORDER BY timestamp DESC")
     fun getAllRecords(): Flow<List<MoodRecord>>
+
+    @Query("SELECT * FROM mood_records WHERE type = :type ORDER BY timestamp DESC")
+    fun getRecordsByType(type: String): Flow<List<MoodRecord>>
 
     @Query("SELECT * FROM mood_records WHERE timestamp >= :start AND timestamp < :end ORDER BY timestamp DESC")
     fun getRecordsBetween(start: Long, end: Long): Flow<List<MoodRecord>>
@@ -36,17 +40,6 @@ interface MoodDao {
     @Query("SELECT * FROM mood_records ORDER BY timestamp DESC")
     suspend fun getAllRecordsList(): List<MoodRecord>
 
-    // ════════ 自定义标签 ════════
-
-    @Insert
-    suspend fun insertTag(tag: CustomTag): Long
-
-    @Delete
-    suspend fun deleteTag(tag: CustomTag)
-
-    @Query("SELECT * FROM custom_tags ORDER BY id")
-    fun getAllTags(): Flow<List<CustomTag>>
-
-    @Query("SELECT * FROM custom_tags ORDER BY id")
-    suspend fun getAllTagsList(): List<CustomTag>
+    @Query("SELECT COUNT(*) FROM mood_records WHERE timestamp >= :start AND timestamp < :end")
+    suspend fun getRecordCountBetween(start: Long, end: Long): Int
 }

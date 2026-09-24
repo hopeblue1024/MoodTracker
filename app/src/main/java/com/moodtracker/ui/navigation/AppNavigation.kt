@@ -1,11 +1,14 @@
 package com.moodtracker.ui.navigation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -16,62 +19,51 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.moodtracker.MoodTrackerApp
-import com.moodtracker.ui.screens.CalendarScreen
 import com.moodtracker.ui.screens.HomeScreen
 import com.moodtracker.ui.screens.RecordScreen
 import com.moodtracker.ui.screens.SettingsScreen
 import com.moodtracker.ui.screens.StatsScreen
 import com.moodtracker.viewmodel.MoodViewModel
-import com.moodtracker.viewmodel.MoodViewModelFactory
 
-/** 底部导航项数据 */
-private data class NavItem(val route: String, val label: String, val icon: ImageVector)
+sealed class Screen(val route: String, val label: String, val icon: ImageVector, val iconSelected: ImageVector) {
+    data object Record : Screen("record", "记录", Icons.Outlined.EditNote, Icons.Filled.EditNote)
+    data object History : Screen("history", "历史", Icons.Outlined.CalendarMonth, Icons.Filled.CalendarMonth)
+    data object Stats : Screen("stats", "统计", Icons.Outlined.BarChart, Icons.Filled.BarChart)
+    data object Settings : Screen("settings", "设置", Icons.Outlined.EditNote, Icons.Filled.EditNote)
+}
 
-/**
- * 应用主导航 — 底部 4 Tab (首页/记录/日历/统计) + 设置页
- */
+private val bottomNav = listOf(Screen.Record, Screen.History, Screen.Stats)
+
 @Composable
 fun AppNavigation() {
-    val context = LocalContext.current
-    val app = context.applicationContext as MoodTrackerApp
-    val viewModel: MoodViewModel = viewModel(
-        factory = MoodViewModelFactory(app.database, app.preferences, app)
-    )
-
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-
-    val navItems = listOf(
-        NavItem("home", "首页", Icons.Default.Home),
-        NavItem("record", "记录", Icons.Default.Add),
-        NavItem("calendar", "日历", Icons.Default.DateRange),
-        NavItem("stats", "统计", Icons.Default.BarChart),
+    val currentDestination = navBackStackEntry?.destination
+    val context = LocalContext.current
+    val viewModel: MoodViewModel = viewModel(
+        factory = MoodViewModel.factory(context.applicationContext as android.app.Application)
     )
 
-    // 设置页不显示底部导航
-    val showBottomBar = currentRoute != "settings"
+    val showBottomBar = currentDestination?.route in bottomNav.map { it.route }
 
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {
-                    navItems.forEach { item ->
-                        val isSelected = currentRoute == item.route ||
-                            (item.route == "record" && currentRoute?.startsWith("edit/") == true)
+                    bottomNav.forEach { screen ->
+                        val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
                         NavigationBarItem(
-                            selected = isSelected,
+                            selected = selected,
                             onClick = {
-                                navController.navigate(item.route) {
+                                navController.navigate(screen.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
                                     }
@@ -79,55 +71,38 @@ fun AppNavigation() {
                                     restoreState = true
                                 }
                             },
-                            icon = { Icon(item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) }
+                            icon = {
+                                Icon(
+                                    imageVector = if (selected) screen.iconSelected else screen.icon,
+                                    contentDescription = screen.label,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            },
+                            label = { Text(screen.label) }
                         )
                     }
                 }
             }
         }
-    ) { innerPadding ->
+    ) { padding ->
         NavHost(
             navController = navController,
-            startDestination = "home",
-            modifier = Modifier.padding(innerPadding)
+            startDestination = Screen.Record.route,
+            modifier = Modifier.padding(padding)
         ) {
-            composable("home") {
+            composable(Screen.Record.route) {
                 HomeScreen(
                     viewModel = viewModel,
-                    onAddRecord = { navController.navigate("record") },
-                    onEditRecord = { id -> navController.navigate("edit/$id") },
-                    onSettings = { navController.navigate("settings") }
+                    onSettings = { navController.navigate(Screen.Settings.route) }
                 )
             }
-            composable("record") {
-                RecordScreen(
-                    viewModel = viewModel,
-                    recordId = -1L,
-                    onDone = { navController.popBackStack() }
-                )
+            composable(Screen.History.route) {
+                RecordScreen(viewModel = viewModel)
             }
-            composable(
-                route = "edit/{recordId}",
-                arguments = listOf(navArgument("recordId") { type = NavType.LongType })
-            ) { backStackEntry ->
-                val recordId = backStackEntry.arguments?.getLong("recordId") ?: -1L
-                RecordScreen(
-                    viewModel = viewModel,
-                    recordId = recordId,
-                    onDone = { navController.popBackStack() }
-                )
-            }
-            composable("calendar") {
-                CalendarScreen(
-                    viewModel = viewModel,
-                    onEditRecord = { id -> navController.navigate("edit/$id") }
-                )
-            }
-            composable("stats") {
+            composable(Screen.Stats.route) {
                 StatsScreen(viewModel = viewModel)
             }
-            composable("settings") {
+            composable(Screen.Settings.route) {
                 SettingsScreen(
                     viewModel = viewModel,
                     onBack = { navController.popBackStack() }

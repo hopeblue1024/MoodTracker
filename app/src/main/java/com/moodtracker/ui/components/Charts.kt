@@ -1,12 +1,9 @@
 package com.moodtracker.ui.components
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,112 +11,76 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.moodtracker.data.Mood
-import com.moodtracker.ui.theme.Primary
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import com.moodtracker.data.MoodRecord
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
- * 情绪变化折线图 — 展示每日心情分数变化
- * @param data 日期 -> 心情分数 (0~4)
+ * 水平条形图 — 分布占比
  */
 @Composable
-fun MoodLineChart(
-    data: List<Pair<LocalDate, Float>>,
-    modifier: Modifier = Modifier
+fun DistributionBarChart(
+    data: List<Triple<String, Int, Float>>,
+    barColor: Color = MaterialTheme.colorScheme.primary
 ) {
-    Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(200.dp)
-    ) {
-        if (data.isEmpty()) return@Canvas
-
-        val paddingLeft = 44.dp.toPx()
-        val paddingRight = 12.dp.toPx()
-        val paddingTop = 12.dp.toPx()
-        val paddingBottom = 24.dp.toPx()
-
-        val plotW = size.width - paddingLeft - paddingRight
-        val plotH = size.height - paddingTop - paddingBottom
-
-        // ── 网格线 + Y 轴标签 ──
-        val moodLabels = listOf("很差", "不太好", "普通", "不错", "很好")
-        val gridColor = Color(0xFFE0E0E0)
-        for (i in 0..4) {
-            val y = paddingTop + plotH - (i / 4f) * plotH
-            drawLine(
-                color = gridColor,
-                start = Offset(paddingLeft, y),
-                end = Offset(size.width - paddingRight, y),
-                strokeWidth = 1f
-            )
-            val tp = android.graphics.Paint().apply {
-                color = Color.Gray.toArgb()
-                textSize = 9.sp.toPx()
-                isAntiAlias = true
-                textAlign = android.graphics.Paint.Align.RIGHT
-            }
-            drawContext.canvas.nativeCanvas.drawText(
-                moodLabels[i],
-                paddingLeft - 4.dp.toPx(),
-                y + 3.dp.toPx(),
-                tp
-            )
-        }
-
-        // ── 折线 ──
-        if (data.size >= 2) {
-            val stepX = plotW / (data.size - 1)
-            val path = Path()
-            data.forEachIndexed { i, (_, score) ->
-                val x = paddingLeft + i * stepX
-                val y = paddingTop + plotH - (score / 4f) * plotH
-                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-            drawPath(path, color = Primary, style = Stroke(width = 3f))
-        }
-
-        // ── 数据点 ──
-        val stepX = if (data.size > 1) plotW / (data.size - 1) else 0f
-        data.forEachIndexed { i, (_, score) ->
-            val x = paddingLeft + i * stepX
-            val y = paddingTop + plotH - (score / 4f) * plotH
-            drawCircle(color = Primary, radius = 5f, center = Offset(x, y))
-        }
-
-        // ── X 轴标签 ──
-        val labelInterval = if (data.size > 7) data.size / 7 else 1
-        val dp = android.graphics.Paint().apply {
-            color = Color.Gray.toArgb()
-            textSize = 9.sp.toPx()
-            isAntiAlias = true
-            textAlign = android.graphics.Paint.Align.CENTER
-        }
-        data.forEachIndexed { i, (date, _) ->
-            if (i % labelInterval == 0 || i == data.size - 1) {
-                val x = paddingLeft + i * stepX
-                drawContext.canvas.nativeCanvas.drawText(
-                    date.format(DateTimeFormatter.ofPattern("M/d")),
-                    x,
-                    size.height - 4.dp.toPx(),
-                    dp
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        data.forEach { (label, count, percentage) ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    label,
+                    modifier = Modifier.width(60.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(24.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(barColor.copy(alpha = 0.1f))
+                ) {
+                    val barWidth = (percentage / 100f).coerceIn(0.05f, 1f)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(barWidth)
+                            .height(24.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(barColor.copy(alpha = 0.6f), barColor)
+                                )
+                            )
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "${count}次",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    "${percentage.toInt()}%",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = barColor
                 )
             }
         }
@@ -127,64 +88,100 @@ fun MoodLineChart(
 }
 
 /**
- * 心情占比饼图 — 展示各心情等级的分布
- * @param data 心情 -> 数量
+ * 垂直柱状图 — 近7日记录走势
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MoodPieChart(
-    data: List<Pair<Mood, Float>>,
-    modifier: Modifier = Modifier
-) {
-    val total = data.sumOf { it.second.toDouble() }.toFloat()
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+fun WeeklyBarChart(data: List<Pair<String, Int>>) {
+    val maxVal = (data.maxOfOrNull { it.second } ?: 1).coerceAtLeast(1)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.Bottom
     ) {
-        Canvas(modifier = Modifier.size(160.dp)) {
-            if (total <= 0f) return@Canvas
-
-            val diameter = minOf(size.width, size.height) * 0.85f
-            val tl = Offset((size.width - diameter) / 2, (size.height - diameter) / 2)
-
-            var startAngle = -90f
-            data.forEach { (mood, value) ->
-                val sweep = (value / total) * 360f
-                drawArc(
-                    color = mood.toColor(),
-                    startAngle = startAngle,
-                    sweepAngle = sweep,
-                    useCenter = true,
-                    topLeft = tl,
-                    size = Size(diameter, diameter)
+        data.forEachIndexed { index, (label, value) ->
+            val barHeight = (value.toFloat() / maxVal) * 100f
+            val colors = listOf(
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                MaterialTheme.colorScheme.primary
+            )
+            val color = colors[index % colors.size]
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom
+            ) {
+                if (value > 0) {
+                    Text(
+                        value.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(2.dp))
+                }
+                Box(
+                    modifier = Modifier
+                        .width(24.dp)
+                        .height(if (value > 0) (barHeight.dp) else 2.dp)
+                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                        .background(color)
                 )
-                startAngle += sweep
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 10.sp
+                )
             }
         }
+    }
+}
 
-        Spacer(Modifier.height(16.dp))
-
-        FlowRow(
+/**
+ * 统计摘要卡片
+ */
+@Composable
+fun StatsSummaryCard(
+    title: String,
+    badgeText: String,
+    dominantEmoji: String,
+    dominantLabel: String,
+    dominantPercent: Int,
+    description: String
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(16.dp)
+    ) {
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            data.forEach { (mood, value) ->
-                val pct = if (total > 0) (value / total * 100).toInt() else 0
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(mood.toColor())
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        "${mood.emoji} ${mood.label} $pct%",
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                Text(badgeText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(dominantEmoji, fontSize = 28.sp)
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text("高频项：$dominantLabel ($dominantPercent%)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Spacer(Modifier.height(2.dp))
+                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

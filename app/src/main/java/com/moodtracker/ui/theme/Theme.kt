@@ -1,47 +1,53 @@
 package com.moodtracker.ui.theme
 
-import android.app.Activity
+import android.os.Build
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
+import androidx.compose.ui.platform.LocalContext
 
-// 浅色主题配色方案
 private val LightColorScheme = lightColorScheme(
     primary = Primary,
-    onPrimary = Color.White,
-    primaryContainer = PrimaryLight,
-    onPrimaryContainer = PrimaryDark,
+    onPrimary = OnPrimary,
+    primaryContainer = PrimaryContainer,
+    onPrimaryContainer = OnPrimaryContainer,
     secondary = Secondary,
-    onSecondary = Color.White,
-    background = CreamBackground,
+    secondaryContainer = SecondaryContainer,
+    onSecondaryContainer = OnSecondaryContainer,
+    tertiary = EmotionTagBg,
+    onTertiary = EmotionTagText,
+    background = Background,
     onBackground = OnSurface,
-    surface = SurfaceWhite,
+    surface = Surface,
     onSurface = OnSurface,
     surfaceVariant = SurfaceVariant,
     onSurfaceVariant = OnSurfaceVariant,
-    outline = OutlineColor,
+    error = Error,
+    outline = Outline
 )
 
 @Composable
-fun MoodTrackerTheme(content: @Composable () -> Unit) {
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val context = view.context
-            if (context is Activity) {
-                // 浅色背景下使用深色状态栏图标
-                WindowCompat.getInsetsController(context.window, view)
-                    .isAppearanceLightStatusBars = true
-            }
+fun MoodTrackerTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
+        darkTheme -> darkColorScheme(primary = Primary, secondary = Secondary)
+        else -> LightColorScheme
     }
+
     MaterialTheme(
-        colorScheme = LightColorScheme,
-        typography = MoodTypography,
+        colorScheme = colorScheme,
+        typography = Typography,
         content = content
     )
 }
